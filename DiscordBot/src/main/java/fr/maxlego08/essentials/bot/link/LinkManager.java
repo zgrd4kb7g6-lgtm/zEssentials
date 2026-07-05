@@ -5,6 +5,7 @@ import fr.maxlego08.essentials.api.dto.DiscordCodeDTO;
 import fr.maxlego08.essentials.bot.DiscordBot;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.entities.channel.unions.MessageChannelUnion;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
@@ -14,13 +15,18 @@ import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.internal.interactions.component.ButtonImpl;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 public class LinkManager extends ListenerAdapter {
 
     public static final String BUTTON_LINK_NAME = "zessentials:link";
+
     private final DiscordBot instance;
+
+    // =========================
+    // ANTI-SPAM (NEW)
+    // =========================
+    private final Map<Long, Long> cooldown = new HashMap<>();
 
     public LinkManager(DiscordBot instance) {
         this.instance = instance;
@@ -48,12 +54,37 @@ public class LinkManager extends ListenerAdapter {
     @Override
     public void onButtonInteraction(@NotNull ButtonInteractionEvent event) {
 
-        if (!instance.getFeatureManager().isEnabled("link-system")) {
-            event.reply("Link system is currently disabled.").setEphemeral(true).queue();
+        // FEATURE TOGGLE
+        if (!instance.getFeatureManager().isEnabled("link")) {
+            event.reply("Link system is disabled.").setEphemeral(true).queue();
             return;
         }
 
         if (!event.getComponentId().equals(BUTTON_LINK_NAME)) return;
+
+        // =========================
+        // ANTI-SPAM CHECK
+        // =========================
+        long userId = event.getUser().getIdLong();
+        long now = System.currentTimeMillis();
+
+        int cooldownSeconds = instance.getConfiguration()
+                .getFeatures()
+                .antiSpam()
+                .cooldownSeconds();
+
+        if (cooldown.containsKey(userId)) {
+            long last = cooldown.get(userId);
+
+            if ((now - last) < cooldownSeconds * 1000L) {
+                event.reply("Slow down. Please wait before using this again.")
+                        .setEphemeral(true)
+                        .queue();
+                return;
+            }
+        }
+
+        cooldown.put(userId, now);
 
         createCode(event, event.getGuild(), event.getUser());
     }
@@ -82,12 +113,10 @@ public class LinkManager extends ListenerAdapter {
                             var config) {
 
         long userId = user.getIdLong();
-
         Optional<DiscordCodeDTO> optional = getCode(userId);
 
         if (optional.isPresent()) {
-            DiscordCodeDTO code = optional.get();
-            sendExistingCode(event, guild, user, config, code);
+            sendExistingCode(event, guild, user, config, optional.get());
             return;
         }
 
@@ -137,7 +166,7 @@ public class LinkManager extends ListenerAdapter {
 
         replyCode(generatedCode, event);
 
-        storage.insertLog(
+        instance.getStorageManager().insertLog(
                 DiscordAction.CREATE_CODE,
                 null,
                 null,
@@ -150,6 +179,14 @@ public class LinkManager extends ListenerAdapter {
                 .replace("%name%", user.getName())
                 .replace("%code%", generatedCode)
                 .replace("%id%", String.valueOf(user.getIdLong())));
+
+        // =========================
+        // ROLE SYNC HOOK (READY FOR NEXT STEP)
+        // =========================
+        Member member = event.getMember();
+        if (member != null) {
+            instance.getRoleSyncService().syncRoles(member, String.valueOf(user.getIdLong()));
+        }
     }
 
     private void log(Guild guild, long channelId, String message) {
