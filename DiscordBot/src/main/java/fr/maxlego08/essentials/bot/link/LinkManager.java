@@ -23,9 +23,7 @@ public class LinkManager extends ListenerAdapter {
 
     private final DiscordBot instance;
 
-    // =========================
-    // ANTI-SPAM (NEW)
-    // =========================
+    // cooldown
     private final Map<Long, Long> cooldown = new HashMap<>();
 
     public LinkManager(DiscordBot instance) {
@@ -54,17 +52,14 @@ public class LinkManager extends ListenerAdapter {
     @Override
     public void onButtonInteraction(@NotNull ButtonInteractionEvent event) {
 
-        // FEATURE TOGGLE
-        if (!instance.getFeatureManager().isEnabled("link")) {
+        // FEATURE TOGGLE (FIXED STRUCTURE)
+        if (!instance.getFeatureManager().isEnabled("link.enabled")) {
             event.reply("Link system is disabled.").setEphemeral(true).queue();
             return;
         }
 
         if (!event.getComponentId().equals(BUTTON_LINK_NAME)) return;
 
-        // =========================
-        // ANTI-SPAM CHECK
-        // =========================
         long userId = event.getUser().getIdLong();
         long now = System.currentTimeMillis();
 
@@ -72,6 +67,9 @@ public class LinkManager extends ListenerAdapter {
                 .getFeatures()
                 .antiSpam()
                 .cooldownSeconds();
+
+        // cleanup old entries (simple safe fix)
+        cooldown.entrySet().removeIf(e -> now - e.getValue() > (cooldownSeconds * 2L * 1000L));
 
         if (cooldown.containsKey(userId)) {
             long last = cooldown.get(userId);
@@ -93,6 +91,7 @@ public class LinkManager extends ListenerAdapter {
 
         var config = instance.getConfiguration().getLink();
         var storage = instance.getStorageManager();
+
         long userId = user.getIdLong();
 
         storage.isAccountLinked(userId, isLinked -> {
@@ -180,12 +179,11 @@ public class LinkManager extends ListenerAdapter {
                 .replace("%code%", generatedCode)
                 .replace("%id%", String.valueOf(user.getIdLong())));
 
-        // =========================
-        // ROLE SYNC HOOK (READY FOR NEXT STEP)
-        // =========================
+        // ROLE SYNC HOOK (IMPORTANT FIX)
         Member member = event.getMember();
+
         if (member != null) {
-            instance.getRoleSyncService().syncRoles(member, String.valueOf(user.getIdLong()));
+            instance.getSyncManager().syncAll(member, null); // Minecraft UUID comes from storage later
         }
     }
 
