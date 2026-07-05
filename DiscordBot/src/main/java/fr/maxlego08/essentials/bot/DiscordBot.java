@@ -3,6 +3,7 @@ package fr.maxlego08.essentials.bot;
 import fr.maxlego08.essentials.bot.command.CommandManager;
 import fr.maxlego08.essentials.bot.config.Configuration;
 import fr.maxlego08.essentials.bot.config.ConfigurationManager;
+import fr.maxlego08.essentials.bot.config.FeatureManager;
 import fr.maxlego08.essentials.bot.link.LinkManager;
 import fr.maxlego08.essentials.bot.listener.CommandListener;
 import fr.maxlego08.essentials.bot.storage.StorageManager;
@@ -17,18 +18,43 @@ public class DiscordBot {
 
     private final ConfigurationManager configurationManager;
     private final Configuration configuration;
-    private final JDA jda;
+
     private final CommandManager commandManager;
     private final StorageManager storageManager;
-    private final LinkManager linkManager;
+
+    private LinkManager linkManager;
+    private FeatureManager featureManager;
+
+    private JDA jda;
     private Scanner scanner;
 
     private DiscordBot() {
 
+        // =========================
+        // CONFIG LOAD
+        // =========================
         this.configurationManager = new ConfigurationManager();
         this.configuration = new Configuration();
         this.configuration.loadConfiguration(configurationManager.getConfig());
 
+        // =========================
+        // FEATURE MANAGER (NEW)
+        // =========================
+        this.featureManager = new FeatureManager(this.configuration);
+
+        // =========================
+        // MANAGERS
+        // =========================
+        this.commandManager = new CommandManager(this);
+
+        this.storageManager = new StorageManager();
+        this.storageManager.connect(this.configuration);
+
+        this.linkManager = new LinkManager(this);
+
+        // =========================
+        // JDA SETUP
+        // =========================
         var builder = JDABuilder.createDefault(this.configuration.getBotToken())
                 .enableIntents(GatewayIntent.GUILD_MEMBERS)
                 .enableIntents(GatewayIntent.GUILD_EXPRESSIONS)
@@ -39,15 +65,13 @@ public class DiscordBot {
                 .enableIntents(GatewayIntent.MESSAGE_CONTENT)
                 .setMemberCachePolicy(MemberCachePolicy.ALL)
                 .addEventListeners(new CommandListener(this))
-                .addEventListeners(this.linkManager = new LinkManager(this));
-
-        this.commandManager = new CommandManager(this);
-
-        this.storageManager = new StorageManager();
-        this.storageManager.connect(this.configuration);
+                .addEventListeners(this.linkManager);
 
         this.jda = builder.build();
 
+        // =========================
+        // SYSTEMS
+        // =========================
         this.addShutdownHook();
         this.listenForCommands();
     }
@@ -56,8 +80,10 @@ public class DiscordBot {
         new DiscordBot();
     }
 
+    // =========================
+    // SHUTDOWN HOOK
+    // =========================
     private void addShutdownHook() {
-        // Add shutdown hook to ensure proper cleanup
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             if (this.jda != null) {
                 this.jda.shutdownNow();
@@ -66,12 +92,16 @@ public class DiscordBot {
         }));
     }
 
+    // =========================
+    // CONSOLE STOP COMMAND
+    // =========================
     private void listenForCommands() {
-        // Scanner to listen for "stop" command
         this.scanner = new Scanner(System.in);
+
         Thread commandThread = new Thread(() -> {
             while (true) {
                 String command = scanner.nextLine();
+
                 if (command.equalsIgnoreCase("stop")) {
                     if (this.jda != null) {
                         this.jda.shutdownNow();
@@ -83,9 +113,14 @@ public class DiscordBot {
             }
             scanner.close();
         });
-        commandThread.setDaemon(true); // Ensures JVM exits when the main thread stops
+
+        commandThread.setDaemon(true);
         commandThread.start();
     }
+
+    // =========================
+    // GETTERS
+    // =========================
 
     public Configuration getConfiguration() {
         return configuration;
@@ -103,8 +138,16 @@ public class DiscordBot {
         return linkManager;
     }
 
+    public FeatureManager getFeatureManager() {
+        return featureManager;
+    }
+
+    // =========================
+    // RELOAD
+    // =========================
     public void reload() {
         this.configurationManager.loadOrCreateConfig();
         this.configuration.loadConfiguration(configurationManager.getConfig());
+        this.featureManager = new FeatureManager(this.configuration);
     }
 }
