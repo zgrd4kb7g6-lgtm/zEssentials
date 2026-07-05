@@ -7,6 +7,8 @@ import fr.maxlego08.essentials.bot.config.FeatureManager;
 import fr.maxlego08.essentials.bot.link.LinkManager;
 import fr.maxlego08.essentials.bot.listener.CommandListener;
 import fr.maxlego08.essentials.bot.storage.StorageManager;
+import fr.maxlego08.essentials.bot.sync.BoostListener;
+
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.requests.GatewayIntent;
@@ -38,7 +40,7 @@ public class DiscordBot {
         this.configuration.loadConfiguration(configurationManager.getConfig());
 
         // =========================
-        // FEATURE MANAGER (NEW)
+        // FEATURE MANAGER
         // =========================
         this.featureManager = new FeatureManager(this.configuration);
 
@@ -65,7 +67,8 @@ public class DiscordBot {
                 .enableIntents(GatewayIntent.MESSAGE_CONTENT)
                 .setMemberCachePolicy(MemberCachePolicy.ALL)
                 .addEventListeners(new CommandListener(this))
-                .addEventListeners(this.linkManager);
+                .addEventListeners(this.linkManager)
+                .addEventListeners(new BoostListener(this)); // ✅ BOOST SYSTEM ADDED
 
         this.jda = builder.build();
 
@@ -140,6 +143,10 @@ public class DiscordBot {
 
     public FeatureManager getFeatureManager() {
         return featureManager;
+    }
+
+    public JDA getJda() {
+        return jda;
     }
 
     // =========================
