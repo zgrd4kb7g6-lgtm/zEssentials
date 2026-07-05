@@ -1,0 +1,46 @@
+package fr.maxlego08.essentials.bot.sync;
+
+import fr.maxlego08.essentials.bot.DiscordBot;
+import net.dv8tion.jda.api.entities.Member;
+
+public class SyncManager {
+
+    private final DiscordBot instance;
+
+    public SyncManager(DiscordBot instance) {
+        this.instance = instance;
+    }
+
+    // =========================
+    // MAIN ENTRY: DISCORD -> MINECRAFT SYNC
+    // =========================
+    public void syncAll(Member member, String minecraftUUID) {
+
+        if (!instance.getFeatureManager().isEnabled("role-sync")) return;
+
+        instance.getRoleSyncService().syncRoles(member, minecraftUUID);
+    }
+
+    // =========================
+    // BOOST SYNC HOOK
+    // =========================
+    public void handleBoostStart(long discordId, String minecraftUUID) {
+
+        var config = instance.getConfiguration().getFeatures().roleSync().boost();
+
+        if (!config.enabled()) return;
+
+        instance.getLuckPermsService().addGroup(minecraftUUID, config.minecraftGroup());
+    }
+
+    public void handleBoostEnd(long discordId, String minecraftUUID) {
+
+        var config = instance.getConfiguration().getFeatures().roleSync().boost();
+
+        if (!config.enabled()) return;
+
+        if (config.removeOnLoss()) {
+            instance.getLuckPermsService().removeGroup(minecraftUUID, config.minecraftGroup());
+        }
+    }
+}
