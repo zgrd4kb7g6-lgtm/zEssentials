@@ -66,9 +66,47 @@ link:
       # url: "https://authorwebsite.net" # Optional
       # iconUrl: "https://groupez.dev/storage/images/users/0/0/0/1.png"
 features:
-  link-system: true
-  unlink-system: true
-  role-sync: false
-  item-rewards: false
-  link-reward: false
-  anti-spam: true
+
+  link:
+    enabled: true
+    anti-spam: true
+
+  unlink:
+    enabled: true
+
+  role-sync:
+    enabled: false
+    sync-on-link: true
+    sync-on-join: false
+
+    roles:
+      default: 000000000000000000
+      vip: 000000000000000000
+      admin: 000000000000000000
+
+    boost:
+      enabled: true
+      discord-role-id: "1378351433338060830"
+      minecraft-group: "booster"
+      remove-on-loss: true
+
+  rewards:
+    link:
+      enabled: false
+      give-items: false
+      give-roles: false
+
+  anti-spam:
+    enabled: true
+    cooldown-seconds: 5
+
+staff-chat:
+  enabled: true
+
+  discord-channel-id: "1506727841226821714"
+
+  minecraft-format: "[STAFF] %player% » %message%"
+  discord-format: "[MC] %player% » %message%"
+
+  sync-discord-to-minecraft: true
+  sync-minecraft-to-discord: true
