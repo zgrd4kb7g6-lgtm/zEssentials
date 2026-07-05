@@ -103,10 +103,15 @@ features:
 staff-chat:
   enabled: true
 
-  discord-channel-id: "1506727841226821714"
+  discord-channel-id: "123456789012345678"
 
-  minecraft-format: "[STAFF] %player% » %message%"
-  discord-format: "[MC] %player% » %message%"
+  prefix: "/sc"
+
+  toggle-mode: true
+
+  format:
+    minecraft: "[STAFF] %player% » %message%"
+    discord: "[MC] %player% » %message%"
 
   sync-discord-to-minecraft: true
-  sync-minecraft-to-discord: true
+  sync-minecraft-to-discord: false
