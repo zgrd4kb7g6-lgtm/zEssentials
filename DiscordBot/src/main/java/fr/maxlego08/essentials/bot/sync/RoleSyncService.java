@@ -3,8 +3,6 @@ package fr.maxlego08.essentials.bot.sync;
 import fr.maxlego08.essentials.bot.DiscordBot;
 import net.dv8tion.jda.api.entities.Member;
 
-import java.util.Map;
-
 public class RoleSyncService {
 
     private final DiscordBot instance;
@@ -21,31 +19,31 @@ public class RoleSyncService {
 
         var roles = config.roles();
 
-        // VIP
-        if (member.getRoles().stream()
-                .anyMatch(r -> r.getId().equals(roles.vip()))) {
+        var luckPerms = instance.getLuckPermsService();
 
-            instance.getLuckPermsService().addGroup(
-                    minecraftUUID,
-                    "vip"
-            );
+        // =========================
+        // CLEAN EXISTING ROLES FIRST
+        // =========================
+        luckPerms.removeGroup(minecraftUUID, "vip");
+        luckPerms.removeGroup(minecraftUUID, "admin");
+
+        // =========================
+        // APPLY NEW ROLES
+        // =========================
+
+        boolean hasVip = member.getRoles().stream()
+                .anyMatch(r -> r.getId().equals(roles.vip()));
+
+        boolean hasAdmin = member.getRoles().stream()
+                .anyMatch(r -> r.getId().equals(roles.admin()));
+
+        if (hasAdmin) {
+            luckPerms.addGroup(minecraftUUID, "admin");
+        } else if (hasVip) {
+            luckPerms.addGroup(minecraftUUID, "vip");
+        } else {
+            luckPerms.addGroup(minecraftUUID, "default");
         }
-
-        // ADMIN
-        if (member.getRoles().stream()
-                .anyMatch(r -> r.getId().equals(roles.admin()))) {
-
-            instance.getLuckPermsService().addGroup(
-                    minecraftUUID,
-                    "admin"
-            );
-        }
-
-        // DEFAULT fallback
-        instance.getLuckPermsService().addGroup(
-                minecraftUUID,
-                "default"
-        );
     }
 
     public void removeAllRoles(String minecraftUUID) {
@@ -54,12 +52,12 @@ public class RoleSyncService {
 
         if (!config.enabled()) return;
 
-        var roles = config.roles();
+        var luckPerms = instance.getLuckPermsService();
 
-        instance.getLuckPermsService().removeGroup(minecraftUUID, "vip");
-        instance.getLuckPermsService().removeGroup(minecraftUUID, "admin");
+        luckPerms.removeGroup(minecraftUUID, "vip");
+        luckPerms.removeGroup(minecraftUUID, "admin");
 
-        // optional default reset
-        instance.getLuckPermsService().addGroup(minecraftUUID, "default");
+        // safe reset only if needed
+        luckPerms.addGroup(minecraftUUID, "default");
     }
 }
