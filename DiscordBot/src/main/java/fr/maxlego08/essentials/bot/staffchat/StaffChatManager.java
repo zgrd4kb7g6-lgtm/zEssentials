@@ -14,35 +14,33 @@ public class StaffChatManager extends ListenerAdapter {
     }
 
     // =========================
-    // DISCORD -> MINECRAFT
+    // DISCORD -> MINECRAFT (VIA STORAGE RELAY)
     // =========================
     @Override
     public void onMessageReceived(@NotNull MessageReceivedEvent event) {
 
-        // ignore bots
         if (event.getAuthor().isBot()) return;
 
         var config = instance.getConfiguration().getFeatures().staffChat();
 
-        // feature toggle
         if (!config.enabled()) return;
 
-        // correct channel check
         if (event.getChannel().getIdLong() != config.discordChannelId()) return;
 
         String formatted = config.format().discord()
                 .replace("%player%", event.getAuthor().getName())
                 .replace("%message%", event.getMessage().getContentDisplay());
 
-        // 🔥 SEND INTO ZESSENTIALS SYSTEM (REAL HOOK)
-        instance.getZessentialsHook().sendToMinecraftStaffChat(
+        // ✅ STORE MESSAGE (Minecraft plugin will pick it up)
+        instance.getStorageManager().insertStaffChatMessage(
                 event.getAuthor().getName(),
-                formatted
+                formatted,
+                System.currentTimeMillis()
         );
     }
 
     // =========================
-    // MINECRAFT -> DISCORD
+    // MINECRAFT -> DISCORD (CALLED BY PLUGIN)
     // =========================
     public void sendToDiscord(String player, String message) {
 
