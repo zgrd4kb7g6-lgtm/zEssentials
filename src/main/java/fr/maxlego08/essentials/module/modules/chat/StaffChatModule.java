@@ -1,67 +1,60 @@
-package fr.maxlego08.essentials.chat.staff;
+package fr.maxlego08.essentials.bot.staffchat;
 
-import fr.maxlego08.essentials.chat.ChatManager;
-import fr.maxlego08.essentials.chat.ChatMessage;
-import fr.maxlego08.essentials.chat.ChatType;
+import fr.maxlego08.essentials.bot.DiscordBot;
+import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
+import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.NotNull;
 
-public class StaffChatModule {
+public class StaffChatManager extends ListenerAdapter {
 
-    private final ChatManager chatManager;
+    private final DiscordBot instance;
 
-    public StaffChatModule(ChatManager chatManager) {
-        this.chatManager = chatManager;
+    public StaffChatManager(DiscordBot instance) {
+        this.instance = instance;
     }
 
-    // =========================
-    // MAIN ENTRY POINT (/sc)
-    // =========================
-    public void send(Player player, String message) {
+    // =====================================================
+    // DISCORD → MINECRAFT
+    // =====================================================
+    @Override
+    public void onMessageReceived(@NotNull MessageReceivedEvent event) {
 
-        if (message == null || message.isEmpty()) return;
+        if (event.getAuthor().isBot()) return;
 
-        ChatMessage chatMessage = new ChatMessage(
-                player,
-                message,
-                ChatType.STAFF
-        );
+        var config = instance.getConfiguration().getFeatures().staffChat();
 
-        handle(chatMessage);
-    }
+        if (!config.enabled()) return;
 
-    // =========================
-    // CORE HANDLER
-    // =========================
-    private void handle(ChatMessage message) {
+        if (event.getChannel().getIdLong() != config.discordChannelId()) return;
 
-        if (message.getType() != ChatType.STAFF) return;
+        String message =
+                "§8[§9DISCORD§8] §f"
+                        + event.getAuthor().getName()
+                        + " §7» §f"
+                        + event.getMessage().getContentDisplay();
 
-        Player sender = message.getPlayer();
-
-        String formatted = format(sender.getName(), message.getMessage());
-
-        // Send to all staff online
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            if (player.hasPermission("zessentials.staffchat")) {
-                player.sendMessage(formatted);
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            if (p.hasPermission("zessentials.staffchat")) {
+                p.sendMessage(message);
             }
         }
-
-        // Send into main chat system (optional logging hook)
-        chatManager.handle(message);
-
-        // Discord bridge hook (YOU already have bot for this)
-        chatManager.getDiscordBridge().sendStaffMessage(
-                sender.getName(),
-                formatted
-        );
     }
 
-    // =========================
-    // FORMAT
-    // =========================
-    private String format(String player, String message) {
-        return "[STAFF] " + player + " » " + message;
+    // =====================================================
+    // MINECRAFT → DISCORD
+    // =====================================================
+    public void sendToDiscord(String player, String message) {
+
+        var config = instance.getConfiguration().getFeatures().staffChat();
+
+        if (!config.enabled()) return;
+
+        var channel = instance.getJda().getTextChannelById(config.discordChannelId());
+
+        if (channel == null) return;
+
+        channel.sendMessage("**[MC STAFF]** " + player + " » " + message).queue();
     }
 }
