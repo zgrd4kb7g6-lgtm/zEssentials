@@ -73,6 +73,8 @@ features:
 
   unlink:
     enabled: true
+    remove-roles: true
+    remove-boost: true
 
   role-sync:
     enabled: false
