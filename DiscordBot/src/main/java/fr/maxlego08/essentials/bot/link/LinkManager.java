@@ -48,89 +48,108 @@ public class LinkManager extends ListenerAdapter {
     @Override
     public void onButtonInteraction(@NotNull ButtonInteractionEvent event) {
 
-        // 🔥 FEATURE TOGGLE CHECK (IMPORTANT)
         if (!instance.getFeatureManager().isEnabled("link-system")) {
             event.reply("Link system is currently disabled.").setEphemeral(true).queue();
             return;
         }
 
-        if (event.getComponentId().equals(BUTTON_LINK_NAME)) {
-            createCode(event, event.getGuild(), event.getUser());
-        }
+        if (!event.getComponentId().equals(BUTTON_LINK_NAME)) return;
+
+        createCode(event, event.getGuild(), event.getUser());
     }
 
     private void createCode(ButtonInteractionEvent event, Guild guild, User user) {
 
         var config = instance.getConfiguration().getLink();
         var storage = instance.getStorageManager();
+        long userId = user.getIdLong();
 
-        storage.isAccountLinked(user.getIdLong(), isLinked -> {
+        storage.isAccountLinked(userId, isLinked -> {
 
             if (isLinked) {
                 event.reply(config.messages().already()).setEphemeral(true).queue();
                 return;
             }
 
-            var optional = getCode(user.getIdLong());
-
-            // If code already exists
-            if (optional.isPresent()) {
-                var code = optional.get();
-
-                replyCode(code.code(), event);
-
-                storage.insertLog(
-                        DiscordAction.ASK_CODE,
-                        null,
-                        null,
-                        user.getEffectiveName(),
-                        user.getIdLong(),
-                        code.code()
-                );
-
-                this.log(
-                        guild,
-                        config.log().channel(),
-                        config.log().ask()
-                                .replace("%name%", user.getName())
-                                .replace("%code%", code.code())
-                                .replace("%id%", String.valueOf(user.getIdLong()))
-                );
-
-                return;
-            }
-
-            // Otherwise create new code
-            String generatedCode = UUID.randomUUID().toString().replace("-", "").substring(0, 16);
-
-            DiscordCodeDTO newCode = new DiscordCodeDTO(
-                    generatedCode,
-                    user.getIdLong(),
-                    user.getName()
-            );
-
-            replyCode(generatedCode, event);
-
-            storage.saveCode(newCode);
-
-            storage.insertLog(
-                    DiscordAction.CREATE_CODE,
-                    null,
-                    null,
-                    user.getEffectiveName(),
-                    user.getIdLong(),
-                    generatedCode
-            );
-
-            this.log(
-                    guild,
-                    config.log().channel(),
-                    config.log().create()
-                            .replace("%name%", user.getName())
-                            .replace("%code%", generatedCode)
-                            .replace("%id%", String.valueOf(user.getIdLong()))
-            );
+            handleCode(event, guild, user, storage, config);
         });
+    }
+
+    private void handleCode(ButtonInteractionEvent event,
+                            Guild guild,
+                            User user,
+                            var storage,
+                            var config) {
+
+        long userId = user.getIdLong();
+
+        Optional<DiscordCodeDTO> optional = getCode(userId);
+
+        if (optional.isPresent()) {
+            DiscordCodeDTO code = optional.get();
+            sendExistingCode(event, guild, user, config, code);
+            return;
+        }
+
+        createNewCode(event, guild, user, storage, config);
+    }
+
+    private void sendExistingCode(ButtonInteractionEvent event,
+                                  Guild guild,
+                                  User user,
+                                  var config,
+                                  DiscordCodeDTO code) {
+
+        replyCode(code.code(), event);
+
+        instance.getStorageManager().insertLog(
+                DiscordAction.ASK_CODE,
+                null,
+                null,
+                user.getEffectiveName(),
+                user.getIdLong(),
+                code.code()
+        );
+
+        log(guild, config.log().channel(), config.log().ask()
+                .replace("%name%", user.getName())
+                .replace("%code%", code.code())
+                .replace("%id%", String.valueOf(user.getIdLong())));
+    }
+
+    private void createNewCode(ButtonInteractionEvent event,
+                               Guild guild,
+                               User user,
+                               var storage,
+                               var config) {
+
+        String generatedCode = UUID.randomUUID().toString()
+                .replace("-", "")
+                .substring(0, 16);
+
+        DiscordCodeDTO newCode = new DiscordCodeDTO(
+                generatedCode,
+                user.getIdLong(),
+                user.getName()
+        );
+
+        storage.saveCode(newCode);
+
+        replyCode(generatedCode, event);
+
+        storage.insertLog(
+                DiscordAction.CREATE_CODE,
+                null,
+                null,
+                user.getEffectiveName(),
+                user.getIdLong(),
+                generatedCode
+        );
+
+        log(guild, config.log().channel(), config.log().create()
+                .replace("%name%", user.getName())
+                .replace("%code%", generatedCode)
+                .replace("%id%", String.valueOf(user.getIdLong())));
     }
 
     private void log(Guild guild, long channelId, String message) {
@@ -155,6 +174,6 @@ public class LinkManager extends ListenerAdapter {
     }
 
     private Optional<DiscordCodeDTO> getCode(long userId) {
-        return this.instance.getStorageManager().getCode(userId);
+        return instance.getStorageManager().getCode(userId);
     }
 }
