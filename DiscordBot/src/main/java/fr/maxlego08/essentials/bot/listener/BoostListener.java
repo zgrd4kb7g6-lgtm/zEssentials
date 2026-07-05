@@ -12,3 +12,54 @@ public class BoostListener extends ListenerAdapter {
     public BoostListener(DiscordBot instance) {
         this.instance = instance;
     }
+
+    @Override
+    public void onGuildMemberUpdateRoleAdd(GuildMemberUpdateRoleAddEvent event) {
+
+        var config = instance.getConfiguration().getFeatures().roleSync().boost();
+
+        if (!config.enabled()) return;
+
+        String boosterRoleId = config.discordRoleId();
+
+        boolean hasBoostRole = event.getRoles().stream()
+                .anyMatch(role -> role.getId().equals(boosterRoleId));
+
+        if (!hasBoostRole) return;
+
+        long discordId = event.getUser().getIdLong();
+
+        instance.getStorageManager().getMinecraftUUID(discordId, uuid -> {
+
+            if (uuid == null) return;
+
+            instance.getLuckPermsService().addGroup(uuid, config.minecraftGroup());
+        });
+    }
+
+    @Override
+    public void onGuildMemberUpdateRoleRemove(GuildMemberUpdateRoleRemoveEvent event) {
+
+        var config = instance.getConfiguration().getFeatures().roleSync().boost();
+
+        if (!config.enabled()) return;
+
+        String boosterRoleId = config.discordRoleId();
+
+        boolean lostBoostRole = event.getRoles().stream()
+                .anyMatch(role -> role.getId().equals(boosterRoleId));
+
+        if (!lostBoostRole) return;
+
+        if (!config.removeOnLoss()) return;
+
+        long discordId = event.getUser().getIdLong();
+
+        instance.getStorageManager().getMinecraftUUID(discordId, uuid -> {
+
+            if (uuid == null) return;
+
+            instance.getLuckPermsService().removeGroup(uuid, config.minecraftGroup());
+        });
+    }
+}
