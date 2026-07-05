@@ -690,6 +690,9 @@ public enum Message {
     COMMAND_SOCIAL_SPY_DISABLE("&7Social spy <error>disable &7for &f%player%<error>."),
     COMMAND_PAY_TOGGLE_ENABLE("&7Pay <success>enable &7for &f%player%<success>."),
     COMMAND_PAY_TOGGLE_DISABLE("<error>All of your power tools have been disabled &7for &f%player%<error>."),
+
+COMMAND_STAFFCHAT_ENABLE("&7Staff chat <success>enabled &7for &f%player%<success>."),
+COMMAND_STAFFCHAT_DISABLE("&7Staff chat <error>disabled &7for &f%player%<error>."),
     COMMAND_POWER_TOOLS_TOGGLE_ENABLE("<success>All of your power tools have been enabled &7for &f%player%<success>."),
     COMMAND_POWER_TOOLS_TOGGLE_DISABLE("&7Pay <error>disable &7for &f%player%<error>."),
     COMMAND_TELEPORT_REQUEST_DISABLED("<error>The player &f%player%<error> has disabled teleport requests."),
