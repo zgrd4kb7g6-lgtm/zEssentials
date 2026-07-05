@@ -11,6 +11,7 @@ import fr.maxlego08.essentials.bot.storage.StorageManager;
 import fr.maxlego08.essentials.bot.sync.BoostListener;
 import fr.maxlego08.essentials.bot.sync.RoleSyncService;
 import fr.maxlego08.essentials.bot.unlink.UnlinkManager;
+import fr.maxlego08.essentials.bot.luckperms.LuckPermsService;
 
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
@@ -32,6 +33,7 @@ public class DiscordBot {
 
     // SERVICES
     private RoleSyncService roleSyncService;
+    private LuckPermsService luckPermsService;
 
     private JDA jda;
     private Scanner scanner;
@@ -53,6 +55,7 @@ public class DiscordBot {
         this.storageManager.connect(this.configuration);
 
         // SERVICES
+        this.luckPermsService = new LuckPermsService(this);
         this.roleSyncService = new RoleSyncService(this);
 
         // LINK SYSTEM
@@ -72,7 +75,7 @@ public class DiscordBot {
                 .addEventListeners(this.linkManager)
                 .addEventListeners(new UnlinkManager(this))
                 .addEventListeners(new BoostListener(this))
-                .addEventListeners(new StaffChatManager(this)); // ✅ FIXED: REGISTER STAFF CHAT
+                .addEventListeners(new StaffChatManager(this));
 
         this.jda = builder.build();
 
@@ -144,6 +147,10 @@ public class DiscordBot {
         return roleSyncService;
     }
 
+    public LuckPermsService getLuckPermsService() {
+        return luckPermsService;
+    }
+
     public JDA getJda() {
         return jda;
     }
@@ -154,6 +161,8 @@ public class DiscordBot {
         this.configuration.loadConfiguration(configurationManager.getConfig());
 
         this.featureManager = new FeatureManager(this.configuration);
+
+        this.luckPermsService = new LuckPermsService(this);
         this.roleSyncService = new RoleSyncService(this);
     }
 }
