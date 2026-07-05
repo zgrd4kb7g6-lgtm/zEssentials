@@ -6,6 +6,7 @@ import fr.maxlego08.essentials.bot.config.ConfigurationManager;
 import fr.maxlego08.essentials.bot.config.FeatureManager;
 import fr.maxlego08.essentials.bot.link.LinkManager;
 import fr.maxlego08.essentials.bot.listener.CommandListener;
+import fr.maxlego08.essentials.bot.staffchat.StaffChatManager;
 import fr.maxlego08.essentials.bot.storage.StorageManager;
 import fr.maxlego08.essentials.bot.sync.BoostListener;
 import fr.maxlego08.essentials.bot.sync.RoleSyncService;
@@ -54,7 +55,7 @@ public class DiscordBot {
         // SERVICES
         this.roleSyncService = new RoleSyncService(this);
 
-        // LINK SYSTEM (NOW HAS ACCESS TO ROLE SYNC)
+        // LINK SYSTEM
         this.linkManager = new LinkManager(this);
 
         // JDA SETUP
@@ -70,7 +71,8 @@ public class DiscordBot {
                 .addEventListeners(new CommandListener(this))
                 .addEventListeners(this.linkManager)
                 .addEventListeners(new UnlinkManager(this))
-                .addEventListeners(new BoostListener(this));
+                .addEventListeners(new BoostListener(this))
+                .addEventListeners(new StaffChatManager(this)); // ✅ FIXED: REGISTER STAFF CHAT
 
         this.jda = builder.build();
 
@@ -150,8 +152,8 @@ public class DiscordBot {
     public void reload() {
         this.configurationManager.loadOrCreateConfig();
         this.configuration.loadConfiguration(configurationManager.getConfig());
-        this.featureManager = new FeatureManager(this.configuration);
 
+        this.featureManager = new FeatureManager(this.configuration);
         this.roleSyncService = new RoleSyncService(this);
     }
 }
