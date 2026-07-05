@@ -65,3 +65,10 @@ link:
       # name: "Author Name"
       # url: "https://authorwebsite.net" # Optional
       # iconUrl: "https://groupez.dev/storage/images/users/0/0/0/1.png"
+features:
+  link-system: true
+  unlink-system: true
+  role-sync: false
+  item-rewards: false
+  link-reward: false
+  anti-spam: true
