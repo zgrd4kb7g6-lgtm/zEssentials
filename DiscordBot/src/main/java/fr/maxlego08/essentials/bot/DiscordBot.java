@@ -8,6 +8,7 @@ import fr.maxlego08.essentials.bot.link.LinkManager;
 import fr.maxlego08.essentials.bot.listener.CommandListener;
 import fr.maxlego08.essentials.bot.storage.StorageManager;
 import fr.maxlego08.essentials.bot.sync.BoostListener;
+import fr.maxlego08.essentials.bot.sync.RoleSyncService;
 
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
@@ -26,6 +27,9 @@ public class DiscordBot {
 
     private LinkManager linkManager;
     private FeatureManager featureManager;
+
+    // ✅ NEW: ROLE SYNC SERVICE
+    private RoleSyncService roleSyncService;
 
     private JDA jda;
     private Scanner scanner;
@@ -54,6 +58,9 @@ public class DiscordBot {
 
         this.linkManager = new LinkManager(this);
 
+        // ✅ INIT ROLE SYNC SERVICE
+        this.roleSyncService = new RoleSyncService(this);
+
         // =========================
         // JDA SETUP
         // =========================
@@ -68,7 +75,7 @@ public class DiscordBot {
                 .setMemberCachePolicy(MemberCachePolicy.ALL)
                 .addEventListeners(new CommandListener(this))
                 .addEventListeners(this.linkManager)
-                .addEventListeners(new BoostListener(this)); // ✅ BOOST SYSTEM ADDED
+                .addEventListeners(new BoostListener(this));
 
         this.jda = builder.build();
 
@@ -145,6 +152,10 @@ public class DiscordBot {
         return featureManager;
     }
 
+    public RoleSyncService getRoleSyncService() {
+        return roleSyncService;
+    }
+
     public JDA getJda() {
         return jda;
     }
@@ -156,5 +167,8 @@ public class DiscordBot {
         this.configurationManager.loadOrCreateConfig();
         this.configuration.loadConfiguration(configurationManager.getConfig());
         this.featureManager = new FeatureManager(this.configuration);
+
+        // refresh role sync service too
+        this.roleSyncService = new RoleSyncService(this);
     }
 }
