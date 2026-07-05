@@ -10,6 +10,7 @@ import fr.maxlego08.essentials.bot.staffchat.StaffChatManager;
 import fr.maxlego08.essentials.bot.storage.StorageManager;
 import fr.maxlego08.essentials.bot.sync.BoostListener;
 import fr.maxlego08.essentials.bot.sync.RoleSyncService;
+import fr.maxlego08.essentials.bot.sync.SyncManager;
 import fr.maxlego08.essentials.bot.unlink.UnlinkManager;
 import fr.maxlego08.essentials.bot.luckperms.LuckPermsService;
 
@@ -34,6 +35,7 @@ public class DiscordBot {
     // SERVICES
     private RoleSyncService roleSyncService;
     private LuckPermsService luckPermsService;
+    private SyncManager syncManager;
 
     private JDA jda;
     private Scanner scanner;
@@ -54,9 +56,10 @@ public class DiscordBot {
         this.storageManager = new StorageManager();
         this.storageManager.connect(this.configuration);
 
-        // SERVICES
+        // SERVICES (ORDER MATTERS)
         this.luckPermsService = new LuckPermsService(this);
         this.roleSyncService = new RoleSyncService(this);
+        this.syncManager = new SyncManager(this);
 
         // LINK SYSTEM
         this.linkManager = new LinkManager(this);
@@ -151,6 +154,10 @@ public class DiscordBot {
         return luckPermsService;
     }
 
+    public SyncManager getSyncManager() {
+        return syncManager;
+    }
+
     public JDA getJda() {
         return jda;
     }
@@ -164,5 +171,6 @@ public class DiscordBot {
 
         this.luckPermsService = new LuckPermsService(this);
         this.roleSyncService = new RoleSyncService(this);
+        this.syncManager = new SyncManager(this);
     }
 }
