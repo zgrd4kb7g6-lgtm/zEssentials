@@ -1,9 +1,9 @@
 package fr.maxlego08.essentials.bot.sync;
 
 import fr.maxlego08.essentials.bot.DiscordBot;
-import net.dv8tion.jda.api.events.guild.member.update.GuildMemberUpdateRoleAddEvent;
-import net.dv8tion.jda.api.events.guild.member.update.GuildMemberUpdateRoleRemoveEvent;
+import net.dv8tion.jda.api.events.guild.member.update.GuildMemberUpdateBoostTimeEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import org.jetbrains.annotations.NotNull;
 
 public class BoostListener extends ListenerAdapter {
 
@@ -14,52 +14,55 @@ public class BoostListener extends ListenerAdapter {
     }
 
     @Override
-    public void onGuildMemberUpdateRoleAdd(GuildMemberUpdateRoleAddEvent event) {
+    public void onGuildMemberUpdateBoostTime(@NotNull GuildMemberUpdateBoostTimeEvent event) {
+
+        if (!instance.getFeatureManager().isEnabled("role-sync")) return;
 
         var config = instance.getConfiguration().getFeatures().roleSync().boost();
 
         if (!config.enabled()) return;
 
-        String boosterRoleId = config.discordRoleId();
+        long userId = event.getUser().getIdLong();
 
-        boolean hasBoostRole = event.getRoles().stream()
-                .anyMatch(role -> role.getId().equals(boosterRoleId));
+        // =========================
+        // BOOST STARTED
+        // =========================
+        if (event.getNewValue() != null && event.getOldValue() == null) {
 
-        if (!hasBoostRole) return;
+            giveBoostRank(userId);
+        }
 
-        long discordId = event.getUser().getIdLong();
+        // =========================
+        // BOOST ENDED
+        // =========================
+        if (event.getNewValue() == null && event.getOldValue() != null) {
 
-        instance.getStorageManager().getMinecraftUUID(discordId, uuid -> {
-
-            if (uuid == null) return;
-
-            instance.getLuckPermsService().addGroup(uuid, config.minecraftGroup());
-        });
+            if (config.removeOnLoss()) {
+                removeBoostRank(userId);
+            }
+        }
     }
 
-    @Override
-    public void onGuildMemberUpdateRoleRemove(GuildMemberUpdateRoleRemoveEvent event) {
+    private void giveBoostRank(long userId) {
 
-        var config = instance.getConfiguration().getFeatures().roleSync().boost();
+        String group = instance.getConfiguration()
+                .getFeatures()
+                .roleSync()
+                .boost()
+                .minecraftGroup();
 
-        if (!config.enabled()) return;
+        // hook to Minecraft (LuckPerms integration later)
+        instance.getRoleSyncService().addGroup(userId, group);
+    }
 
-        String boosterRoleId = config.discordRoleId();
+    private void removeBoostRank(long userId) {
 
-        boolean lostBoostRole = event.getRoles().stream()
-                .anyMatch(role -> role.getId().equals(boosterRoleId));
+        String group = instance.getConfiguration()
+                .getFeatures()
+                .roleSync()
+                .boost()
+                .minecraftGroup();
 
-        if (!lostBoostRole) return;
-
-        if (!config.removeOnLoss()) return;
-
-        long discordId = event.getUser().getIdLong();
-
-        instance.getStorageManager().getMinecraftUUID(discordId, uuid -> {
-
-            if (uuid == null) return;
-
-            instance.getLuckPermsService().removeGroup(uuid, config.minecraftGroup());
-        });
+        instance.getRoleSyncService().removeGroup(userId, group);
     }
 }
